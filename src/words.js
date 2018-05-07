@@ -1,4 +1,17 @@
 function Cib() {
+  // properties
+  this.usernameFound = false;
+  this.finalDefinitionsForUser = [];
+  this.mostRecentDefinition = {
+    topic: '',
+    username: '',
+    definitions: [],
+    timeSearched: 0
+  };
+
+  this.getFinalDefinitionsForUser = function() {
+    return this.finalDefiniationsForUser;
+  }.bind(this);
 
   // to DOM elements   -- topic history section
   this.topicList = document.getElementById('topic-list');
@@ -47,13 +60,9 @@ function Cib() {
                         </button>
                         </div>`;
 
-  this.mostRecentDefinition = {
-    topic: '',
-    username: '',
-    definitions: [],
-    timeSearched: 0
-  };
+  
 
+  
 
   this.initFirebase();
 }
@@ -95,16 +104,6 @@ Cib.prototype.saveUsername = function (e) {
     });
   }
 };
-
-Cib.prototype.getFinalDefinitionsForUser = function (username) {
-  var finalDefinitions;
-  this.finalDefinitionsRef.orderByChild('name')
-    .equalTo(username)
-    .once('child_added', function (snap) {
-      finalDefinitions = Array.from(snap.val());
-    }.bind(this));
-  return finalDefinitions;
-}
 
 /**
  * topic related
@@ -343,26 +342,29 @@ Cib.prototype.getDefinitionsFromSessionStorage = function () {
   }
 }
 
-Cib.prototype.searchCountForUser = function (username) {
-  var searchCount = 0;
-  var searched= [];
-  var countSearchForUser = function (snap) {
-    console.log(snap.val());
-    console.log(snap.val().username);
-    if(snap.val().username) {
-      searchCount++;
-      searched.push(snap.val());
-      $(document).find("#searchCount").text(searchCount + " searches found.");
-    }
+// store all finalDefinitaions found for this username to a propery of the Cib
+Cib.prototype.searchFinalDefinitionsForUser = function (username) {
+  var searchCount;
+  var collectAll = function(data) {
+    this.finalDefinitionsForUser.push(data.val());
+    var val = data.val();
+    console.log(data, val);
+     // get count
+    searchCount = this.finalDefinitionsForUser.length;
+    console.log(searchCount, this.finalDefinitionsForUser);
+    $(document).find("#searchCount").text(searchCount + " previous search found");
 
-    searchCount = searched.length;
-    console.log(searchCount);
+    this.displayFinalDefinition(data.key, val)
   }.bind(this);
 
-  this.finalDefinitionsRef
-    .orderByChild('username')
+  this.finalDefinitionsRef.orderByChild('username')
     .equalTo(username)
-    .once('child_added', countSearchForUser);
+    .on('child_added', collectAll);
+}
+
+Cib.prototype.searchCountForUser = function (username) {
+  var searched= [];
+  this.searchFinalDefinitionsForUser(username); 
 }
 
 /**
@@ -377,12 +379,14 @@ Cib.prototype.checkIfExistingUser = function (username) {
       console.log(snap.val().name)
       if (snap.val().name == username) {
         found = true;
-        $(document).find("#username-search").text(username);
-        $(document).find("#username-desc").text(" has been found. Please enter search words and submit.")
+        $(document).find("#username-search").text('');
+        $(document).find("#username-desc").text(`The username ${username} is already in the registry.`);
+        this.usernameFound = true;
       } else {
         found = false;
-        $(document).find("#username-search").text(username);
-        $(document).find("#username-desc").text(" has not been found. Please hit the 'Add user' button below.")
+        $(document).find("#username-search").text('');
+        $(document).find("#username-desc").text(`The username ${username} has not been found and will be added to the registry.`)
+        this.usernameFound = false;
       }
       console.log("found: " + found);
     }.bind(this));
@@ -395,57 +399,14 @@ Cib.prototype.checkIfExistingUser = function (username) {
 $(document).on('click', '#usernameSubmit', function (e) {
   var username = Cib.usernameInput.value;
   $(document).find(".username-title").text(username);
-
-  var searchCount;
-  //var found = Cib.checkIfExistingUser(username);
-
-  var found;
-  Cib.usersRef.orderByChild('name')
-    .equalTo(username)
-    .once('child_added', function (snap) {
-      console.log(snap.val());
-      console.log(snap.val().name)
-      $(document).find("#username-search").empty();
-      $(document).find("#username-desc").empty();
-
-      if (snap.val().name == username) {
-        found = true;
-        $(document).find("#username-search").text(username);
-        $(document).find("#username-desc").text(" has been found. Please enter search words and submit.")
-
-        // get count
-        searchCount = Cib.searchCountForUser(username);
-        if (searchCount == 1) {
-          $(document).find(".username-exists")
-            .html(`<strong>You are one of us!</strong><p>Your ${searchCount} search history is shown below.</p>`);
-        } else if (searchCount > 1) {
-          $(document).find(".username-exists")
-            .html(`<strong>You are one of us!</strong><p>Your ${searchCount} or 3-most-recent search histories are shown below.</p>`);
-        }
-      } else {
-        found = false;
-        $(document).find("#username-search").text(username);
-        $(document).find("#username-desc").text(" has not been found. Please hit the 'Add user' button below.")
-        $(document).find(".username-exists")
-          .html("<strong>No username was found.</strong><p>But we will remember you,  you become one of us!</p>");
-      }
-      console.log("found: " + found);
-    }.bind(Cib));
-
-  // if (found) {
-  //   searchCount = Cib.searchCountForUser(username);
-  //   if (searchCount == 1) {
-  //     $(document).find(".username-exists")
-  //       .html(`<strong>You are one of us!</strong><p>Your ${searchCount} search history is shown below.</p>`);
-  //   } else if (searchCount > 1) {
-  //     $(document).find(".username-exists")
-  //       .html(`<strong>You are one of us!</strong><p>Your ${searchCount} or 3-most-recent search histories are shown below.</p>`);
-  //   }
-  // } else {
-  //   $(document).find(".username-exists")
-  //     .html("<strong>No username was found.</strong><p>But we will remember you,  you become one of us!</p>");
-  // }
+  Cib.checkIfExistingUser(username);
 });
+
+$(document).on('click', "#addFinialDefinitionsForUser", function(e) {
+  var username = Cib.usernameInput.value;
+  Cib.searchCountForUser(username);
+  console.log(Cib.getFinalDefinitionsForUser());
+})
 
 $(document).on('click', '.modal-btn', function (e) {
   $(".topic-title").text($(this).attr('data-topic'));

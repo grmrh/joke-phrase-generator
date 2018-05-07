@@ -89,7 +89,6 @@
         </form>
       </div>
 
-
       <footer class="page-footer font-small stylish-color-dark pt-4 mt-4">
         <!--Footer Links-->
         <div class="container">
@@ -148,8 +147,10 @@
             aria-describedby="basic-addon1">
         </div>
         <button type="submit" class="btn btn-primary mt-2" id='usernameSubmit' data-toggle='modal' data-target='.username-response'>Add user</button>
+        <button type="submit" class="btn btn-primary mt-2 ml-2" id="addFinialDefinitionsForUser">Previous search</button>
       </form>
-      <h6 class="mb-1 ml-2 text-white">Topics Searched</h6>
+      
+      <h6 class="mb-1 ml-2 text-white" id="searchCount"></h6>
 
       <div class="list-group" id="topic-list"></div>
       <!-- modalfor definition and final definition -->
@@ -191,7 +192,7 @@
             <div class="modal-body">
                 <h6 id="username-search">username</h6>
                 <h6 id="username-desc" style="color:black"></h6>
-                <h6 id = "searchCount"></h6>
+                
             </div>
             <div class="modal-body">
               <h6 class="username-exists" style="color:black"></h6>
@@ -203,10 +204,10 @@
           </div>
         </div>
       </div>  
-</div>
+    </div>
 
         <!--/.Footer-->
-    </div>
+  </div>
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
