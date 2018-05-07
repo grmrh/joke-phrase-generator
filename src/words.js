@@ -18,6 +18,9 @@ function Cib() {
 
   this.usernameForm = document.getElementById("usernameForm");
   this.topicForm = document.getElementById("topic-form");
+
+  this.searchCount = document.getElementById("searchCount");
+
   //this.definitionsForm = document.getElementById()
 
   console.log(this.usernameForm);
@@ -76,7 +79,7 @@ Cib.prototype.displayUsername = function (key, name) {
   document.querySelector('#username').value = name;
 }
 
-Cib.prototype.saveUsername = function (e){
+Cib.prototype.saveUsername = function (e) {
   e.preventDefault();
 
   if (this.usernameInput.value) {
@@ -92,36 +95,6 @@ Cib.prototype.saveUsername = function (e){
     });
   }
 };
-
-/**
- * https://stackoverflow.com/questions/28262803/firebase-retrieve-data-by-using-orderbykey-and-equalto
- */
-Cib.prototype.checkIfExistingUser = function (username) {
-  var found;
-  this.usersRef.orderByChild('name')
-    .equalTo(username)
-    .once('child_added', function (snap) {
-      console.log(snap.val().name)
-      if (snap.val().name == username) found = true;
-      else found = false;
-
-      console.log("found: " + found);
-      return found;
-    }.bind(this));
-}
-
-Cib.prototype.searchCountForUser = function (username) {
-  var searchCount;
-  this.finalDefinitionsRef.child('username')
-    .orderByChild('username')
-    .equalTo(username)
-    .once('child_added', function (snap) {
-      console.log(snap.val().username)
-      var finalDefinitions = Array.from(snap.val());
-      searchCount = finalDefinitions.length;
-    }.bind(this));
-  return searchCount;
-}
 
 Cib.prototype.getFinalDefinitionsForUser = function (username) {
   var finalDefinitions;
@@ -248,85 +221,6 @@ Cib.prototype.saveDefinition = function () {
   }
 }
 
-/**
- * https://stackoverflow.com/questions/28262803/firebase-retrieve-data-by-using-orderbykey-and-equalto
- */
-// Cib.prototype.checkIfExistingUser = function (username) {
-//   var found;
-//   this.usersRef.orderByChild("username")
-//     .equalTo(username)
-//     .once('child_added', function (snap) {
-//       if (snap.val().username) found = true;
-//       else found = false;
-//     }.bind(this));
-//   return found;
-// }
-
-// Cib.prototype.searchCountForUser = function (username) {
-//   var searchCount;
-//   this.finalDefinitionsRef.orderByChild('username')
-//     .equalTo(username)
-//     .once('child_added', function (snap) {
-//       var finalDefinitions = Array.from(snap.val());
-//       searchCount = finalDefinitions.length;
-//     }.bind(this));
-//   return searchCount;
-// }
-
-// Cib.prototype.getFinalDefinitionsForUser = function (username) {
-//   var finalDefinitions;
-//   this.finalDefinitionsRef.orderByChild('username')
-//     .equalTo(username)
-//     .once('child_added', function (snap) {
-//       finalDefinitions = Array.from(snap.val());
-//     }.bind(this));
-//   return finalDefinitions;
-// }
-
-// /**
-//  * topic related
-//  * @param {*} val 
-//  */
-// Cib.prototype.loadTopics = function () {
-//   var setTopics = function (data) {
-//     var val = data.val();
-//     console.log(data, val);
-//     this.displayTopic(data.key, val)
-//   }.bind(this);
-
-//   this.topicsRef.limitToLast(3).on('child_added', setTopics);
-// }
-
-// Cib.prototype.displayTopic = function (key, val) {
-
-//   // console.log(key, val.topic, val.searchedTime);
-//   // var topicName = val.topic;
-//   //document.querySelector('#topic-list').append(this.Topic_TEMPLATE);
-//   $(document).find('#topic-list').append(this.createTopicCard(val));
-// }
-
-// Cib.prototype.saveTopic = function (e) {
-//   //e.preventDefault();
-
-//   if (this.topicInput.value) {
-//     console.log(this.topicInput.value);
-//     var topicInputValue = this.topicInput.value;
-//     var usernameInputValue = this.usernameInput.value;
-//     console.log(firebase.database.ServerValue.TIMESTAMP);
-
-//     this.topicsRef.push({
-//       username: usernameInputValue,
-//       topic: topicInputValue,
-//       searchedTime: firebase.database.ServerValue.TIMESTAMP
-//     }).then(function () {
-//       //Cib.resetMaterialTextfield(this.topicInput);
-//       this.toggleButton(this.topicInput, this.topicSubmitButton);
-//     }.bind(this)).catch(function (error) {
-//       console.error('Error saving username to firebase', error);
-//     });
-//   }
-// }
-
 Cib.prototype.createTopicCard = function (val) {
   var timeSearched;
   if (!val.hasOwnProperty('searchedTime')) {
@@ -449,6 +343,51 @@ Cib.prototype.getDefinitionsFromSessionStorage = function () {
   }
 }
 
+Cib.prototype.searchCountForUser = function (username) {
+  var searchCount = 0;
+  var searched= [];
+  var countSearchForUser = function (snap) {
+    console.log(snap.val());
+    console.log(snap.val().username);
+    if(snap.val().username) {
+      searchCount++;
+      searched.push(snap.val());
+      $(document).find("#searchCount").text(searchCount + " searches found.");
+    }
+
+    searchCount = searched.length;
+    console.log(searchCount);
+  }.bind(this);
+
+  this.finalDefinitionsRef
+    .orderByChild('username')
+    .equalTo(username)
+    .once('child_added', countSearchForUser);
+}
+
+/**
+ * https://stackoverflow.com/questions/28262803/firebase-retrieve-data-by-using-orderbykey-and-equalto
+ */
+Cib.prototype.checkIfExistingUser = function (username) {
+  var found;
+  this.usersRef.orderByChild('name')
+    .equalTo(username)
+    .once('child_added', function (snap) {
+      console.log(snap.val());
+      console.log(snap.val().name)
+      if (snap.val().name == username) {
+        found = true;
+        $(document).find("#username-search").text(username);
+        $(document).find("#username-desc").text(" has been found. Please enter search words and submit.")
+      } else {
+        found = false;
+        $(document).find("#username-search").text(username);
+        $(document).find("#username-desc").text(" has not been found. Please hit the 'Add user' button below.")
+      }
+      console.log("found: " + found);
+    }.bind(this));
+}
+
 /**
  * modal thing
  * load modal content on click the button "#modal-btn"
@@ -459,22 +398,54 @@ $(document).on('click', '#usernameSubmit', function (e) {
 
   var searchCount;
   //var found = Cib.checkIfExistingUser(username);
-  var found = true;
 
-  if (found) {
-    searchCount = Cib.searchCountForUser(username);
-    if (searchCount == 1) {
-      $(document).find(".username-exists")
-        .html(`<strong>You are one of us!</strong><p>Your ${searchCount} search history is shown below.</p>`);
-    } else if (searchCount > 1) {
-      $(document).find(".username-exists")
-        .html(`<strong>You are one of us!</strong><p>Your ${searchCount} or 3-most-recent search histories are shown below.</p>`);
-    }
-  } else {
-    $(document).find(".username-exists")
-      .html("<strong>No username was found.</strong><p>But we will remember you,  you become one of us!</p>");
-  }
-})
+  var found;
+  Cib.usersRef.orderByChild('name')
+    .equalTo(username)
+    .once('child_added', function (snap) {
+      console.log(snap.val());
+      console.log(snap.val().name)
+      $(document).find("#username-search").empty();
+      $(document).find("#username-desc").empty();
+
+      if (snap.val().name == username) {
+        found = true;
+        $(document).find("#username-search").text(username);
+        $(document).find("#username-desc").text(" has been found. Please enter search words and submit.")
+
+        // get count
+        searchCount = Cib.searchCountForUser(username);
+        if (searchCount == 1) {
+          $(document).find(".username-exists")
+            .html(`<strong>You are one of us!</strong><p>Your ${searchCount} search history is shown below.</p>`);
+        } else if (searchCount > 1) {
+          $(document).find(".username-exists")
+            .html(`<strong>You are one of us!</strong><p>Your ${searchCount} or 3-most-recent search histories are shown below.</p>`);
+        }
+      } else {
+        found = false;
+        $(document).find("#username-search").text(username);
+        $(document).find("#username-desc").text(" has not been found. Please hit the 'Add user' button below.")
+        $(document).find(".username-exists")
+          .html("<strong>No username was found.</strong><p>But we will remember you,  you become one of us!</p>");
+      }
+      console.log("found: " + found);
+    }.bind(Cib));
+
+  // if (found) {
+  //   searchCount = Cib.searchCountForUser(username);
+  //   if (searchCount == 1) {
+  //     $(document).find(".username-exists")
+  //       .html(`<strong>You are one of us!</strong><p>Your ${searchCount} search history is shown below.</p>`);
+  //   } else if (searchCount > 1) {
+  //     $(document).find(".username-exists")
+  //       .html(`<strong>You are one of us!</strong><p>Your ${searchCount} or 3-most-recent search histories are shown below.</p>`);
+  //   }
+  // } else {
+  //   $(document).find(".username-exists")
+  //     .html("<strong>No username was found.</strong><p>But we will remember you,  you become one of us!</p>");
+  // }
+});
 
 $(document).on('click', '.modal-btn', function (e) {
   $(".topic-title").text($(this).attr('data-topic'));
